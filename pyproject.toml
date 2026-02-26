@@ -16,6 +16,9 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "ruff>=0.15.0",
+    "mypy>=1.9.0",
+    "pre-commit>=4.0.0",
 ]
 
 [project.scripts]
@@ -23,8 +26,11 @@ media-dl = "cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = [
-    "--cov=downloader",
+    "--cov=domain",
+    "--cov=adapters",
+    "--cov=app",
     "--cov-report=term-missing",
     "--cov-report=html:coverage",
     "--cov-fail-under=80",
@@ -32,9 +38,31 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["downloader"]
+source = ["domain", "adapters", "app"]
 omit = ["tests/*", "cli.py"]
 
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "RUF", # ruff-specific
+]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+exclude = ["tests/"]

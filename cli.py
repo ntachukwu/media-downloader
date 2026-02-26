@@ -1,15 +1,15 @@
 import argparse
-from domain.models import DownloadRequest, MediaFormat
-from adapters.ytdlp_downloader import YtDlpDownloader
+
 from adapters.local_storage import LocalStorage
+from adapters.ytdlp_downloader import YtDlpDownloader
 from app.use_cases import DownloadMedia
+from domain.models import DownloadRequest, MediaFormat
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Download media from a URL")
     parser.add_argument("url")
-    parser.add_argument("--format", "-f", default="mp4",
-                        choices=[f.value for f in MediaFormat])
+    parser.add_argument("--format", "-f", default="mp4", choices=[f.value for f in MediaFormat])
     parser.add_argument("--out", "-o", default="./downloads")
     args = parser.parse_args()
 

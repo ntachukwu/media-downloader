@@ -1,6 +1,9 @@
-import pytest
-from domain.models import DownloadRequest, DownloadResult, MediaFormat
+from dataclasses import FrozenInstanceError
 from pathlib import Path
+
+import pytest
+
+from domain.models import DownloadRequest, DownloadResult, MediaFormat
 
 
 class TestMediaFormat:
@@ -27,7 +30,7 @@ class TestDownloadRequest:
 
     def test_request_is_immutable(self):
         req = DownloadRequest(url="http://x.com/v", format=MediaFormat.MP4, out_dir="/tmp")
-        with pytest.raises(Exception):
+        with pytest.raises(FrozenInstanceError):
             req.url = "other"
 
 

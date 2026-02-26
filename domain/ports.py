@@ -6,18 +6,20 @@ ever talks to these. Adapters implement them. Nothing in domain/ or
 app/ imports from adapters/.
 """
 
-from typing import Protocol
 from pathlib import Path
+from typing import Protocol, runtime_checkable
+
 from domain.models import DownloadRequest, DownloadResult
 
 
+@runtime_checkable
 class Downloader(Protocol):
     """Knows how to fetch media from a URL."""
 
-    def download(self, request: DownloadRequest) -> DownloadResult:
-        ...
+    def download(self, request: DownloadRequest) -> DownloadResult: ...
 
 
+@runtime_checkable
 class Storage(Protocol):
     """Knows how to prepare and resolve output paths."""
 

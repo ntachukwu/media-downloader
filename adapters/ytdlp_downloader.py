@@ -5,9 +5,11 @@ Implements the Downloader port using yt-dlp.
 Swap this file to change the download backend — nothing else changes.
 """
 
-import yt_dlp
 from pathlib import Path
-from domain.models import DownloadRequest, DownloadResult, MediaFormat
+
+import yt_dlp
+
+from domain.models import DownloadRequest, DownloadResult
 
 
 class YtDlpDownloader:
@@ -31,24 +33,28 @@ class YtDlpDownloader:
                 error=str(e),
             )
 
-    def _build_opts(self, request: DownloadRequest) -> dict:
+    def _build_opts(self, request: DownloadRequest) -> dict[str, object]:
         if request.format.is_audio_only:
             return {
                 "format": "bestaudio/best",
                 "outtmpl": f"{request.out_dir}/%(title)s.%(ext)s",
-                "postprocessors": [{
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": request.format.value,
-                    "preferredquality": "192",
-                }],
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": request.format.value,
+                        "preferredquality": "192",
+                    }
+                ],
                 "quiet": True,
             }
         return {
             "format": "bestvideo+bestaudio/best",
             "outtmpl": f"{request.out_dir}/%(title)s.%(ext)s",
-            "postprocessors": [{
-                "key": "FFmpegVideoConvertor",
-                "preferedformat": request.format.value,
-            }],
+            "postprocessors": [
+                {
+                    "key": "FFmpegVideoConvertor",
+                    "preferedformat": request.format.value,
+                }
+            ],
             "quiet": True,
         }

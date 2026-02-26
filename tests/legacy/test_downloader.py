@@ -1,16 +1,15 @@
-import pytest
-from unittest.mock import patch, MagicMock, call
-from pathlib import Path
-
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from downloader import build_opts, ensure_dir, run_download
 
-
 # ---------------------------------------------------------------------------
 # build_opts
 # ---------------------------------------------------------------------------
+
 
 class TestBuildOpts:
     def test_output_template_contains_out_dir(self):
@@ -38,8 +37,10 @@ class TestBuildOpts:
     def test_different_formats_produce_different_opts(self):
         opts_mp4 = build_opts("http://x.com/v", "mp4", "/out")
         opts_mkv = build_opts("http://x.com/v", "mkv", "/out")
-        assert opts_mp4["postprocessors"][0]["preferedformat"] != \
-               opts_mkv["postprocessors"][0]["preferedformat"]
+        assert (
+            opts_mp4["postprocessors"][0]["preferedformat"]
+            != opts_mkv["postprocessors"][0]["preferedformat"]
+        )
 
     def test_different_dirs_produce_different_templates(self):
         opts_a = build_opts("http://x.com/v", "mp4", "/dir_a")
@@ -50,6 +51,7 @@ class TestBuildOpts:
 # ---------------------------------------------------------------------------
 # ensure_dir
 # ---------------------------------------------------------------------------
+
 
 class TestEnsureDir:
     def test_creates_directory(self, tmp_path):
@@ -77,6 +79,7 @@ class TestEnsureDir:
 # ---------------------------------------------------------------------------
 # run_download
 # ---------------------------------------------------------------------------
+
 
 class TestRunDownload:
     def test_calls_ydl_download_with_url(self):

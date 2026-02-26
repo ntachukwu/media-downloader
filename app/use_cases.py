@@ -19,7 +19,7 @@ class DownloadMedia:
 
     def __init__(self, downloader: Downloader, storage: Storage) -> None:
         self._downloader = downloader
-        self._storage    = storage
+        self._storage = storage
 
     def execute(self, request: DownloadRequest) -> DownloadResult:
         self._storage.ensure(request.out_dir)

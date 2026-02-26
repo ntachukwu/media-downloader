@@ -4,15 +4,15 @@ No mocking frameworks, no patching. Just plain Python objects.
 This makes the tests readable and the contracts explicit.
 """
 
-import pytest
 from pathlib import Path
-from domain.models import DownloadRequest, DownloadResult, MediaFormat
-from app.use_cases import DownloadMedia
 
+from app.use_cases import DownloadMedia
+from domain.models import DownloadRequest, DownloadResult, MediaFormat
 
 # ---------------------------------------------------------------------------
 # Fakes
 # ---------------------------------------------------------------------------
+
 
 class FakeDownloader:
     def __init__(self, succeeds=True):
@@ -42,14 +42,13 @@ class FakeStorage:
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestDownloadMedia:
     def _make(self, succeeds=True):
         downloader = FakeDownloader(succeeds=succeeds)
-        storage    = FakeStorage()
-        use_case   = DownloadMedia(downloader=downloader, storage=storage)
-        request    = DownloadRequest(url="http://x.com/v",
-                                     format=MediaFormat.MP4,
-                                     out_dir="/tmp/out")
+        storage = FakeStorage()
+        use_case = DownloadMedia(downloader=downloader, storage=storage)
+        request = DownloadRequest(url="http://x.com/v", format=MediaFormat.MP4, out_dir="/tmp/out")
         return use_case, downloader, storage, request
 
     def test_successful_execute_returns_success(self):
@@ -80,17 +79,14 @@ class TestDownloadMedia:
 
     def test_different_downloader_can_be_injected(self):
         """Swap the adapter — use case behaviour unchanged."""
+
         class AlwaysFailsDownloader:
             def download(self, request):
-                return DownloadResult(request=request,
-                                      file_path=Path("/"),
-                                      success=False,
-                                      error="always fails")
+                return DownloadResult(
+                    request=request, file_path=Path("/"), success=False, error="always fails"
+                )
 
-        use_case = DownloadMedia(downloader=AlwaysFailsDownloader(),
-                                  storage=FakeStorage())
-        request = DownloadRequest(url="http://x.com/v",
-                                  format=MediaFormat.MP4,
-                                  out_dir="/tmp")
+        use_case = DownloadMedia(downloader=AlwaysFailsDownloader(), storage=FakeStorage())
+        request = DownloadRequest(url="http://x.com/v", format=MediaFormat.MP4, out_dir="/tmp")
         result = use_case.execute(request)
         assert not result.success

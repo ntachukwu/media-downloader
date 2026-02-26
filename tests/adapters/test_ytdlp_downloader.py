@@ -1,8 +1,7 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-from domain.models import DownloadRequest, MediaFormat
+from unittest.mock import MagicMock, patch
+
 from adapters.ytdlp_downloader import YtDlpDownloader
+from domain.models import DownloadRequest, MediaFormat
 
 
 def make_request(fmt=MediaFormat.MP4, out="/tmp"):
