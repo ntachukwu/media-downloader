@@ -50,3 +50,11 @@ class TestYtDlpDownloader:
             result = YtDlpDownloader().download(make_request())
         assert not result.success
         assert "network error" in result.error
+
+    def test_tiktok_url_is_passed_through_unchanged(self):
+        # The source site is irrelevant — yt-dlp handles routing internally.
+        # Our code must not inspect or transform the URL.
+        tiktok_url = "https://www.tiktok.com/@user/video/1234567890"
+        request = DownloadRequest(url=tiktok_url, format=MediaFormat.MP4, out_dir="/tmp")
+        _, mock_ydl, _ = self._run(request)
+        mock_ydl.download.assert_called_once_with([tiktok_url])
