@@ -173,4 +173,30 @@ The first commit attempt failed on three hook issues, each revealing a nuance:
 
 ---
 
+## Commit 4 — `test: assert TikTok URL passes through the adapter unchanged`
+
+### What changed
+Added one test to `tests/adapters/test_ytdlp_downloader.py` asserting that a TikTok URL
+is handed to yt-dlp exactly as given, without modification.
+
+### Decisions
+
+**Does the source site matter?**
+No. yt-dlp resolves which extractor to use internally based on the URL pattern.
+Our adapter is site-agnostic by design — it receives a URL string and passes it
+to `ydl.download([url])`. The test documents this contract explicitly.
+
+**Why write a test for something that obviously works?**
+Because "obviously works" is not the same as "tested". The test pins a contract:
+*this code must never inspect or mangle URLs*. If someone later adds URL normalisation,
+sanitisation, or domain filtering, this test will catch it and force a conscious decision.
+Tests are not just correctness checks — they are specifications.
+
+**Why TikTok specifically?**
+It's a real-world URL with a path structure (`/@user/video/id`) that looks different
+from a plain YouTube URL. Using a realistic URL makes the intent of the test legible
+to anyone reading it later.
+
+---
+
 *Written by a non-deterministic automata.*
