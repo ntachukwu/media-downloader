@@ -4,6 +4,7 @@ A scratchpad for ideas, port sketches, and architectural proposals.
 Nothing here is committed code — it is thinking made visible.
 
 Promote an idea to `domain/ports.py` only when the interface feels stable.
+Raw ideas that don't need a sketch yet go in `BACKLOG.md` instead.
 
 ---
 
@@ -137,89 +138,12 @@ paths evolve independently.
 
 ---
 
-### [PROPOSAL] Retry / backoff strategy
-
-**Problem**: transient network errors (rate limits, timeouts) cause silent failures.
-The user has to re-run manually.
-
-**Sketch**
-
-```python
-# Not a new port — a decorator over the existing Downloader port
-
-class RetryingDownloader:
-    def __init__(
-        self,
-        inner: Downloader,
-        max_attempts: int = 3,
-        backoff_seconds: float = 2.0,
-    ) -> None: ...
-
-    def download(self, request: DownloadRequest) -> DownloadResult:
-        for attempt in range(self.max_attempts):
-            result = self.inner.download(request)
-            if result.success:
-                return result
-            time.sleep(self.backoff_seconds * (2 ** attempt))
-        return result  # last failure
-```
-
-This is the Decorator pattern over the `Downloader` port. `cli.py` composes it:
-
-```python
-DownloadMedia(
-    downloader=RetryingDownloader(YtDlpDownloader(), max_attempts=3),
-    storage=LocalStorage(),
-)
-```
-
-No changes to `domain/` or `app/`. The retry policy is a wiring decision.
-
-**Trade-offs**
-- `time.sleep` in the decorator blocks the thread — acceptable for a CLI tool,
-  not for an async/concurrent future
-- yt-dlp has its own retry logic (`retries` option) — duplicating it is wasteful.
-  Prefer configuring yt-dlp's native retries via `_build_opts` first; only add
-  this decorator if we need retry logic at the use-case boundary (e.g., switching
-  adapters mid-retry).
-
-**Status**: probably unnecessary given yt-dlp's native retry. Revisit if we ever
-swap the download backend.
-
----
-
-### [PROPOSAL] Output naming strategy port
-
-**Problem**: the output template `%(title)s.%(ext)s` is hardcoded in the adapter.
-Users may want: date-prefixed names, sanitised titles, custom slugs, UUIDs.
-
-**Sketch**
-
-```python
-class NamingStrategy(Protocol):
-    def template(self, request: DownloadRequest) -> str:
-        """Return a yt-dlp outtmpl string."""
-        ...
-```
-
-**Concrete implementations**
-- `TitleNaming` — current: `%(title)s.%(ext)s`
-- `DatePrefixNaming` — `%(upload_date)s_%(title)s.%(ext)s`
-- `UuidNaming` — generates a UUID, ignores yt-dlp template syntax entirely
-  (requires post-processing the filename after download)
-
-**Trade-off**: yt-dlp's template syntax is powerful but opaque. Exposing it as a
-port leaks a yt-dlp concept into the domain. Better to keep `NamingStrategy` as
-an adapter-internal strategy, not a domain port.
-
-**Status**: low priority. Implement as an internal strategy class inside
-`adapters/ytdlp_downloader.py`, not as a domain port.
-
----
-
 ## Closed / Decided
 
 *(Move proposals here once they are built or explicitly rejected, with a one-line outcome.)*
+
+- **Retry / backoff** — moved to `BACKLOG.md`; yt-dlp handles retries natively, no sketch needed yet.
+- **Output naming strategy** — moved to `BACKLOG.md`; adapter-internal concern, not a domain port.
 
 ---
 
