@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "media-downloader"
+version = "0.1.0"
+description = "Download video and audio from any URL, with format conversion."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "yt-dlp>=2024.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[project.scripts]
+media-dl = "cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=downloader",
+    "--cov-report=term-missing",
+    "--cov-report=html:coverage",
+    "--cov-fail-under=80",
+    "-v",
+]
+
+[tool.coverage.run]
+source = ["downloader"]
+omit = ["tests/*", "cli.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
