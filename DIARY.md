@@ -150,6 +150,27 @@ the honest type: keys are strings, values are heterogeneous. Using a TypedDict w
 more precise but would couple the adapter to a schema that yt-dlp can change at any time.
 `dict[str, object]` is the right balance of honesty and pragmatism.
 
+**Pre-commit hook configuration lessons learned**
+The first commit attempt failed on three hook issues, each revealing a nuance:
+
+1. **ruff `RUF005`** — `["cli"] + argv` should be `["cli", *argv]`. List concatenation is
+   a Python anti-pattern when one side is a spread; the spread form is both faster and
+   cleaner. This is exactly the kind of micro-improvement that automated linting catches
+   and humans skip over in review.
+
+2. **mypy `exclude` in pre-commit** — adding `--exclude=tests` as a CLI arg to mypy does
+   not work when pre-commit passes files as positional arguments (positional args override
+   the exclude). The correct mechanism is the pre-commit `exclude:` key at the hook level,
+   which filters files *before* they are passed to mypy. Tests are intentionally excluded
+   from strict mypy: they use fakes and mocks that would require heavy type annotation for
+   no practical gain.
+
+3. **pytest-cov not in pre-commit environment** — the `language: system` hook runs in the
+   system Python, not the project's `.venv`. The `pyproject.toml` `addopts` includes
+   `--cov` flags, which require `pytest-cov`. The fix is to pass
+   `--override-ini=addopts=` to the hook's `entry`, stripping coverage flags. Coverage
+   enforcement belongs in CI, not in the local pre-commit fast path.
+
 ---
 
 *Written by a non-deterministic automata.*
