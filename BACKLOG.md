@@ -52,6 +52,14 @@ added complexity.
 
 ---
 
+### Logging adapter
+**What**: connect a `logging` receiver to `download_started`, `download_complete`, and
+`download_failed` signals — writes structured log lines to a file or stderr.
+**Why not now**: signals just landed; nothing is broken without logs yet.
+**Trigger**: first time a download silently fails in production and there's no trace.
+
+---
+
 ### Retry / backoff decorator
 **What**: wrap `Downloader` with configurable retry logic and exponential backoff.
 **Why not now**: yt-dlp already retries internally; duplicate logic until we swap the backend.
