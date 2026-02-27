@@ -214,6 +214,201 @@ paths evolve independently.
 
 ---
 
+### [PROPOSAL] Destination port + registry — injectable, platform-aware constraints
+
+**Problem**: destination constraints (max duration, file size, codec, aspect ratio) are
+platform-specific and change over time without notice. WhatsApp Status went from 30s to 90s.
+Hardcoding these values anywhere — domain, settings, pipeline — guarantees they will be wrong.
+
+**Core insight**: `Destination` is a port. The domain declares what shape it needs;
+each platform adapter owns its own constraints and decides how to source them.
+
+**Sketch**
+
+```python
+# domain/ports.py  — add alongside Downloader and Storage
+
+@dataclass(frozen=True)
+class DestinationConstraints:
+    max_duration_seconds: int | None   # None = no limit
+    max_file_mb:          int | None   # None = no limit
+    preferred_aspect:     str | None   # "9:16", "1:1", "16:9", None = any
+    required_codec:       str          # "h264", "h265", "any"
+    last_verified:        str          # ISO date — staleness indicator
+
+
+class Destination(Protocol):
+    name:  str   # machine key  e.g. "whatsapp_status"
+    label: str   # human label  e.g. "WhatsApp Status"
+
+    @property
+    def constraints(self) -> DestinationConstraints: ...
+```
+
+**Concrete adapters — one file per platform**
+
+```python
+# adapters/destinations/whatsapp_status.py
+
+class WhatsAppStatus:
+    name  = "whatsapp_status"
+    label = "WhatsApp Status"
+
+    @property
+    def constraints(self) -> DestinationConstraints:
+        return DestinationConstraints(
+            max_duration_seconds=90,    # updated from 30 — Feb 2024
+            max_file_mb=16,
+            preferred_aspect="9:16",
+            required_codec="h264",
+            last_verified="2024-02-01",
+        )
+```
+
+```python
+# adapters/destinations/instagram_story.py
+
+class InstagramStory:
+    name  = "instagram_story"
+    label = "Instagram Story"
+
+    @property
+    def constraints(self) -> DestinationConstraints:
+        return DestinationConstraints(
+            max_duration_seconds=60,
+            max_file_mb=100,
+            preferred_aspect="9:16",
+            required_codec="h264",
+            last_verified="2024-01-15",
+        )
+```
+
+**Registry — auto-discovers all destination adapters**
+
+```python
+# adapters/destinations/registry.py
+
+from adapters.destinations.whatsapp_status  import WhatsAppStatus
+from adapters.destinations.instagram_story  import InstagramStory
+from adapters.destinations.telegram         import Telegram
+
+_ALL: list[Destination] = [WhatsAppStatus(), InstagramStory(), Telegram()]
+
+DESTINATIONS: dict[str, Destination] = {d.name: d for d in _ALL}
+
+
+def get(name: str) -> Destination:
+    if name not in DESTINATIONS:
+        raise ValueError(
+            f"Unknown destination '{name}'. "
+            f"Available: {list(DESTINATIONS)}"
+        )
+    return DESTINATIONS[name]
+
+
+def all_destinations() -> list[Destination]:
+    """Used by the API to build the Flutter destination picker."""
+    return list(_ALL)
+```
+
+**How the pipeline uses the destination**
+
+The pipeline no longer hardcodes durations or file sizes. It reads them from
+whatever `Destination` adapter is passed in:
+
+```python
+# app/use_cases.py  — ShareMedia (new use case alongside DownloadMedia)
+
+class ShareMedia:
+    def __init__(self, downloader: Downloader, storage: Storage) -> None: ...
+
+    def execute(self, request: ShareRequest) -> ShareResult:
+        destination = registry.get(request.destination_name)
+        constraints = destination.constraints
+
+        # Download
+        result = DownloadMedia(...).execute(...)
+
+        # Process per destination constraints
+        signals.download_complete.send(
+            file_path=result.file_path,
+            constraints=constraints,   # ← pipeline reads this, not a hardcoded value
+        )
+        return ShareResult(...)
+```
+
+**API endpoint — Flutter gets the live destination list**
+
+```python
+# api.py
+
+@app.get("/destinations")
+def list_destinations():
+    return [
+        {
+            "name":  d.name,
+            "label": d.label,
+            "max_duration_seconds": d.constraints.max_duration_seconds,
+            "last_verified": d.constraints.last_verified,
+        }
+        for d in registry.all_destinations()
+    ]
+```
+
+The Flutter picker calls `GET /destinations` on startup and builds its UI from
+the response. Adding Twitter to the registry is visible to the app instantly —
+no Flutter release needed.
+
+**How constraints stay current — the upgrade path**
+
+Stage 1 (now): hardcoded per adapter with `last_verified` date visible in the API
+response. Staleness is honest and observable.
+
+Stage 2 (later): each adapter gains an optional `CONSTRAINTS_URL` class attribute.
+On startup it fetches fresh constraints from a hosted JSON file and caches them:
+
+```python
+class WhatsAppStatus:
+    CONSTRAINTS_URL = "https://your-api.com/constraints/whatsapp_status.json"
+
+    @property
+    def constraints(self) -> DestinationConstraints:
+        return _fetch_or_fallback(self.CONSTRAINTS_URL, self._hardcoded)
+```
+
+You push a JSON update to your server and all running instances pick it up
+without a code release. The hardcoded fallback is the safety net if the fetch fails.
+
+**Contract test**
+
+```python
+# tests/contracts/test_destination_contracts.py
+
+from adapters.destinations.whatsapp_status import WhatsAppStatus
+from adapters.destinations.instagram_story import InstagramStory
+from domain.ports import Destination
+
+def test_all_destinations_satisfy_port():
+    for d in [WhatsAppStatus(), InstagramStory()]:
+        assert isinstance(d, Destination)
+
+def test_constraints_have_last_verified_date():
+    import re
+    date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    for d in [WhatsAppStatus(), InstagramStory()]:
+        assert date_pattern.match(d.constraints.last_verified), (
+            f"{d.name}: last_verified must be an ISO date"
+        )
+```
+
+**Adding a new destination is one file + one import in registry.py.**
+The domain, pipeline, API, and Flutter app are untouched.
+
+**Status**: build this before the pipeline. The pipeline needs to read constraints
+from somewhere — this is where they live.
+
+---
+
 ### [PROPOSAL] Management commands — Django-style CLI registry
 
 **Problem**: `cli.py` is a single flat function. As subcommands grow (`download`, `inspect`,

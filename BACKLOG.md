@@ -22,6 +22,29 @@ To promote an item: move it to `EXPERIMENTS.md` as a `[PROPOSAL]` and flesh out 
 
 ---
 
+### Flutter + FastAPI mobile share app
+**What**: Flutter app registers as a share target on Android + iOS; receives URLs from
+TikTok/YouTube/etc., calls the FastAPI backend, receives processed video, hands it to
+WhatsApp/Instagram via native OS share sheet.
+**Why not now**: Python engine needs to be stable first; FastAPI wrapper and Flutter shell
+are delivery layers, not core logic.
+**Trigger**: Destination port and pipeline are built and working end-to-end.
+
+---
+
+### Remote constraints registry for destination adapters
+**What**: each `Destination` adapter fetches its constraints from a hosted JSON endpoint
+(`https://your-api.com/constraints/whatsapp_status.json`) rather than relying solely on
+hardcoded values. Falls back to hardcoded if the fetch fails. You push a JSON update and
+all running instances pick up the new constraints without a code release.
+**Why not now**: hardcoded adapters with `last_verified` dates are sufficient until
+constraints actually change and cause a real problem.
+**Trigger**: a platform changes a constraint (duration, size limit) and it causes a
+production bug. That's the evidence that the fetch-on-startup mechanism is worth the
+added complexity.
+
+---
+
 ### Output naming strategy
 **What**: let users customise how downloaded files are named (date-prefix, UUID, custom slug).
 **Why not now**: current `%(title)s` naming is good enough for personal use; no one has asked.
