@@ -238,4 +238,53 @@ subcommand is ready. Building ahead of the pain produces unnecessary complexity.
 
 ---
 
+## Commit 6 — `docs: add Destination port proposal and update backlog`
+
+### What changed
+Added the `Destination` port proposal to `EXPERIMENTS.md`. Added `Flutter + FastAPI`
+and `remote constraints registry` to `BACKLOG.md`.
+
+### Decisions
+
+**Why is Destination a port, not a domain model?**
+A frozen dataclass in `domain/models.py` would work for *current* constraints, but
+constraints change. A Protocol in `domain/ports.py` means each platform adapter owns
+and controls its own constraint values. The domain only declares the shape it needs —
+`constraints: DestinationConstraints` — not where those constraints come from.
+This is the same reason `Downloader` is a port: we never want the domain to know
+whether we're using yt-dlp, ffmpeg, or a hypothetical future backend.
+
+**Why `last_verified: str` on `DestinationConstraints`?**
+Platform limits are not available via any machine-readable API. The `last_verified`
+field makes staleness *honest and observable* — the `/destinations` API endpoint
+exposes it, so consumers can see how old the data is. A missing or stale date is
+a signal to go verify the platform's current documentation. Hiding this would be
+worse: the constraints would appear authoritative when they might not be.
+
+**Why hardcoded first, remote fetch later?**
+The two-stage upgrade path follows the "build when the pain is felt" principle.
+Hardcoded adapters with `last_verified` dates solve the problem today. Remote fetch
+solves the problem of having to release a new version when a platform changes —
+but that problem only exists once you have real users. Solving it preemptively adds
+network dependency and cache invalidation complexity for zero current benefit.
+
+**Why is the contract test checking the date format?**
+Because `last_verified` is only useful if it's actually a date. A test that enforces
+the ISO format catches a developer who writes `last_verified="recently"` or forgets
+the field entirely. It is a machine-checkable proxy for "this data was consciously
+verified at a specific point in time".
+
+**Updated build order**
+```
+1. Signals             (domain/signals.py)          ← no deps
+2. Destination port    (domain/ports.py + adapters/) ← no deps, unlocks pipeline
+3. Pipeline            (domain/pipeline.py)          ← reads Destination.constraints
+4. FastAPI layer       (api.py)                      ← wraps DownloadMedia + ShareMedia
+5. Management commands (cli/commands/)               ← when inspect lands
+6. LazySettings        (conf.py)                     ← feeds WHATSAPP_MODE
+7. Flutter app         (separate repo)               ← calls FastAPI
+```
+
+---
+
 *Written by a non-deterministic automata.*
