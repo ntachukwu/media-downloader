@@ -199,4 +199,43 @@ to anyone reading it later.
 
 ---
 
+## Commit 5 — `docs: add Django-inspired proposals to experiments`
+
+### What changed
+Four new proposals added to `EXPERIMENTS.md`, all borrowed from studying Django's
+open-source architecture. The original `ProgressReporter` port proposal was replaced.
+
+### Decisions
+
+**Why replace ProgressReporter with Signals?**
+A `ProgressReporter` port is the right shape for one observer. But the project now has
+a second cross-cutting concern (WhatsApp post-processing) and will have more. If every
+new concern requires a new constructor argument on `DownloadMedia`, the use case becomes
+a configuration object — a smell. Django's signal system solves this: the use case fires
+named events, listeners connect independently. Adding WhatsApp processing is one
+`signals.download_complete.connect(...)` call, not a change to the domain.
+
+**Why study Django specifically?**
+Django is 20 years old and still growing. Its patterns have been tested at scale and
+refined through real use over a long time. The management commands system has not
+meaningfully changed since Django 1.x. The middleware chain is the same pattern.
+These are not clever ideas — they are proven ones. Borrowing from proven designs is
+faster than inventing equivalent designs from scratch.
+
+**Build order implied by the proposals**
+```
+1. Signals (domain/signals.py)         ← no dependencies, unlocks everything else
+2. Management commands (cli/commands/) ← needs a second subcommand to justify it
+3. Middleware pipeline                 ← needs signals + ffmpeg
+4. LazySettings (conf.py)             ← needs the pipeline to configure
+```
+
+**Why not build all of this now?**
+The proposals are sketches, not implementation plans. The right time to build each one
+is when the pain it solves is actually felt. Signals become necessary when the second
+cross-cutting concern appears. Management commands become necessary when the second
+subcommand is ready. Building ahead of the pain produces unnecessary complexity.
+
+---
+
 *Written by a non-deterministic automata.*
