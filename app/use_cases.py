@@ -5,6 +5,7 @@ Orchestrates the ports — knows the workflow, owns no implementation.
 Receives its dependencies via constructor injection (testable, swappable).
 """
 
+from domain import signals
 from domain.models import DownloadRequest, DownloadResult
 from domain.ports import Downloader, Storage
 
@@ -23,4 +24,10 @@ class DownloadMedia:
 
     def execute(self, request: DownloadRequest) -> DownloadResult:
         self._storage.ensure(request.out_dir)
-        return self._downloader.download(request)
+        signals.download_started.send(url=request.url)
+        result = self._downloader.download(request)
+        if result.success:
+            signals.download_complete.send(file_path=result.file_path, request=request)
+        else:
+            signals.download_failed.send(error=result.error, request=request)
+        return result

@@ -1,5 +1,6 @@
 import argparse
 
+import adapters.cli_progress  # noqa: F401 — connects progress receivers to signals
 from adapters.local_storage import LocalStorage
 from adapters.ytdlp_downloader import YtDlpDownloader
 from app.use_cases import DownloadMedia
