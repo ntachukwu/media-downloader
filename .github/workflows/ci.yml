@@ -29,6 +29,22 @@ jobs:
       - name: Type check (mypy)
         run: mypy domain/ adapters/ app/ cli.py api.py
 
+  docs:
+    name: Docs Freshness
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for git log
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check documentation freshness
+        run: python scripts/docs-freshness.py
+
   test:
     name: Tests & Coverage
     runs-on: ubuntu-latest
