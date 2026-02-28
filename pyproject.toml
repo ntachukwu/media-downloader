@@ -84,4 +84,4 @@ arg-type-hints-in-signature = true   # read types from annotations, not docstrin
 arg-type-hints-in-docstring = false   # don't require types repeated in Args: section
 check-return-types = false            # return types are in annotations; no need to repeat
 require-return-when-only-none = false # void functions don't need a Returns: section
-exclude = "\\.git|tests/|scripts/"   # only lint the application code
+exclude = "\\.git|tests/"   # only lint the application code
