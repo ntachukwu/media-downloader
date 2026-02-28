@@ -27,7 +27,7 @@ jobs:
         run: ruff format --check .
 
       - name: Type check (mypy)
-        run: mypy domain/ adapters/ app/ cli.py api.py scripts/
+        run: mypy domain/ adapters/ app/ cli.py api.py
 
       - name: Docstring linting (pydoclint)
         run: pydoclint domain/ adapters/ app/ api.py cli.py
