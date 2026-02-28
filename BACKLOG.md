@@ -22,6 +22,15 @@ To promote an item: move it to `EXPERIMENTS.md` as a `[PROPOSAL]` and flesh out 
 
 ---
 
+### Telegram destination adapter
+**What**: add a `Telegram` adapter to `adapters/destinations/` with constraints for
+Telegram's video file limits (50 MB for bots, 2 GB for regular uploads; no aspect
+requirement; H.264 preferred). Import and add it to `registry._ALL`.
+**Why not now**: constraints need verification; WhatsApp and Instagram cover the immediate use case.
+**Trigger**: first user request to share a video to Telegram.
+
+---
+
 ### Flutter + FastAPI mobile share app
 **What**: Flutter app registers as a share target on Android + iOS; receives URLs from
 TikTok/YouTube/etc., calls the FastAPI backend, receives processed video, hands it to
