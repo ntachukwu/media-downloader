@@ -76,3 +76,25 @@ class TestCliConstruction:
             import cli
 
             cli.main()
+
+    def test_whatsapp_flag_connects_processor(self) -> None:
+        with (
+            patch("sys.argv", ["cli", "http://x.com/v", "--whatsapp"]),
+            patch("app.use_cases.DownloadMedia.execute", return_value=MagicMock(success=True)),
+            patch("adapters.whatsapp.processor.connect") as mock_connect,
+        ):
+            import cli
+
+            cli.main()
+        mock_connect.assert_called_once()
+
+    def test_without_whatsapp_flag_processor_is_not_connected(self) -> None:
+        with (
+            patch("sys.argv", ["cli", "http://x.com/v"]),
+            patch("app.use_cases.DownloadMedia.execute", return_value=MagicMock(success=True)),
+            patch("adapters.whatsapp.processor.connect") as mock_connect,
+        ):
+            import cli
+
+            cli.main()
+        mock_connect.assert_not_called()
