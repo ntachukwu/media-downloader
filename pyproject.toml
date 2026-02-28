@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "media-downloader"
@@ -10,6 +10,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "yt-dlp>=2024.1.0",
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
 ]
 
 [project.optional-dependencies]
@@ -19,7 +21,14 @@ dev = [
     "ruff>=0.15.0",
     "mypy>=1.9.0",
     "pre-commit>=4.0.0",
+    "httpx>=0.27.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["domain*", "adapters*", "app*"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
 
 [project.scripts]
 media-dl = "cli:main"
@@ -31,6 +40,7 @@ addopts = [
     "--cov=domain",
     "--cov=adapters",
     "--cov=app",
+    "--cov=api",
     "--cov-report=term-missing",
     "--cov-report=html:coverage",
     "--cov-fail-under=80",
@@ -38,7 +48,7 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["domain", "adapters", "app"]
+source = ["domain", "adapters", "app", "api"]
 omit = ["tests/*", "cli.py"]
 
 [tool.coverage.report]
