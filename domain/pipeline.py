@@ -22,8 +22,15 @@ ProcessorFn = Callable[[Path], Path]
 def build_pipeline(steps: list[ProcessorFn]) -> ProcessorFn:
     """Return a single callable that applies each step in order.
 
-    If ``steps`` is empty, the returned function is the identity: it
+    If *steps* is empty the returned function is the identity: it
     returns its input unchanged.
+
+    Args:
+        steps: Ordered list of processing functions. Each receives the
+            ``Path`` returned by the previous step.
+
+    Returns:
+        A single ``ProcessorFn`` that applies every step sequentially.
     """
 
     def handler(path: Path) -> Path:

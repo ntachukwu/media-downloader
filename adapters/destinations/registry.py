@@ -20,7 +20,14 @@ DESTINATIONS: dict[str, Destination] = {d.name: d for d in _ALL}
 def get(name: str) -> Destination:
     """Return the destination with the given machine key.
 
-    Raises `ValueError` if the name is not registered.
+    Args:
+        name: Machine key for the destination (e.g. ``"whatsapp_status"``).
+
+    Returns:
+        The matching :class:`~domain.ports.Destination` adapter.
+
+    Raises:
+        ValueError: If *name* is not in the registry.
     """
     if name not in DESTINATIONS:
         raise ValueError(f"Unknown destination '{name}'. Available: {list(DESTINATIONS)}")
@@ -32,5 +39,8 @@ def all_destinations() -> list[Destination]:
 
     Used by the API to build the destination picker — callers receive the
     live list, so adding an adapter here is immediately visible.
+
+    Returns:
+        Ordered list of every registered :class:`~domain.ports.Destination`.
     """
     return list(_ALL)
