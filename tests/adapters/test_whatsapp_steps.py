@@ -1,13 +1,16 @@
 """
-WhatsApp adapter tests — trim, codec, resize, and processor.
+WhatsApp adapter tests — trim, codec, resize, split, and processor.
 
 Each test that modifies a file uses a per-test copy from conftest.py so
 session-scoped fixtures remain intact.
 """
 
 from pathlib import Path
+from unittest.mock import patch
 
-from adapters.whatsapp import codec, resize, trim
+import pytest
+
+from adapters.whatsapp import codec, resize, split, trim
 from adapters.whatsapp._ffmpeg import probe_audio_codec, probe_duration, probe_video_codec
 
 
@@ -86,6 +89,48 @@ class TestFfmpegProbes:
         assert probe_video_codec(tiny_mpeg4_video) == "mpeg4"
 
 
+class TestSplitByDuration:
+    def test_returns_single_path_when_within_limit(self, h264_video: Path) -> None:
+        result = split.split_by_duration(h264_video, max_seconds=10)
+        assert result == [h264_video]
+
+    def test_original_is_unchanged_when_within_limit(self, h264_video: Path) -> None:
+        size_before = h264_video.stat().st_size
+        split.split_by_duration(h264_video, max_seconds=10)
+        assert h264_video.stat().st_size == size_before
+
+    def test_splits_into_correct_number_of_parts(self, h264_video: Path) -> None:
+        # 3s video split at 1s → 3 parts
+        parts = split.split_by_duration(h264_video, max_seconds=1)
+        assert len(parts) == 3
+
+    def test_part_paths_follow_naming_convention(self, h264_video: Path) -> None:
+        parts = split.split_by_duration(h264_video, max_seconds=1)
+        stems = [p.stem for p in parts]
+        assert stems == ["h264_part1", "h264_part2", "h264_part3"]
+
+    def test_each_part_is_within_duration_limit(self, h264_video: Path) -> None:
+        parts = split.split_by_duration(h264_video, max_seconds=1)
+        for part in parts:
+            duration = probe_duration(part)
+            assert duration is not None
+            assert duration <= 1.5  # 0.5s tolerance for keyframe alignment
+
+    def test_original_file_is_preserved_after_split(self, h264_video: Path) -> None:
+        split.split_by_duration(h264_video, max_seconds=1)
+        assert h264_video.exists()
+
+    def test_part_files_exist_on_disk(self, h264_video: Path) -> None:
+        parts = split.split_by_duration(h264_video, max_seconds=1)
+        for part in parts:
+            assert part.exists()
+
+    def test_split_two_parts(self, h264_video: Path) -> None:
+        # 3s video split at 2s → 2 parts
+        parts = split.split_by_duration(h264_video, max_seconds=2)
+        assert len(parts) == 2
+
+
 class TestWhatsAppProcessor:
     def test_connect_registers_receiver_on_download_complete(self) -> None:
         from adapters.whatsapp import processor
@@ -110,3 +155,35 @@ class TestWhatsAppProcessor:
         from adapters.whatsapp.processor import _prepare_for_whatsapp
 
         _prepare_for_whatsapp(file_path=tmp_path / "ghost.mp4")  # no error
+
+    def test_prepare_for_whatsapp_warns_when_too_long(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from adapters.whatsapp import processor
+
+        video = tmp_path / "long.mp4"
+        video.touch()
+
+        with patch(
+            "adapters.whatsapp.processor.probe_duration",
+            return_value=float(processor.MAX_TOTAL_SECONDS + 1),
+        ):
+            processor._prepare_for_whatsapp(file_path=video)
+
+        out = capsys.readouterr().out
+        assert "too long" in out.lower()
+        assert "4m30s" in out
+
+    def test_prepare_for_whatsapp_does_not_warn_at_exact_limit(
+        self, h264_video: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from adapters.whatsapp import processor
+
+        with patch(
+            "adapters.whatsapp.processor.probe_duration",
+            return_value=float(processor.MAX_TOTAL_SECONDS),
+        ):
+            processor._prepare_for_whatsapp(file_path=h264_video)
+
+        out = capsys.readouterr().out
+        assert "too long" not in out.lower()
