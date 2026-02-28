@@ -27,13 +27,27 @@ class Signal:
     _receivers: list[Callable[..., Any]] = field(default_factory=list)
 
     def connect(self, receiver: Callable[..., Any]) -> None:
+        """Register *receiver* to be called when this signal is sent.
+
+        Args:
+            receiver: Callable that accepts arbitrary keyword arguments.
+        """
         self._receivers.append(receiver)
 
     def disconnect(self, receiver: Callable[..., Any]) -> None:
-        """Remove a receiver. Useful in tests to reset state."""
+        """Remove *receiver* from this signal. Useful in tests to reset state.
+
+        Args:
+            receiver: The exact callable previously passed to :meth:`connect`.
+        """
         self._receivers = [r for r in self._receivers if r is not receiver]
 
     def send(self, **kwargs: Any) -> None:
+        """Fire the signal, calling every connected receiver with *kwargs*.
+
+        Args:
+            **kwargs: Payload forwarded verbatim to every receiver.
+        """
         for receiver in self._receivers:
             receiver(**kwargs)
 

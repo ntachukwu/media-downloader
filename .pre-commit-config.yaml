@@ -14,6 +14,13 @@ repos:
         args: [--ignore-missing-imports]
         exclude: ^tests/
 
+  - repo: https://github.com/jsh9/pydoclint
+    rev: 0.8.3
+    hooks:
+      - id: pydoclint
+        additional_dependencies: []
+        args: [domain/, adapters/, app/, api.py, cli.py]
+
   - repo: local
     hooks:
       - id: pytest
