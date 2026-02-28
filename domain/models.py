@@ -1,9 +1,4 @@
-"""
-Domain models.
-
-Pure data — no I/O, no dependencies, no framework.
-These are the nouns of the application.
-"""
+"""Domain models — pure data with no I/O, no dependencies, no framework."""
 
 from dataclasses import dataclass
 from enum import StrEnum
